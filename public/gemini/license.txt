@@ -1,0 +1,11 @@
+Model Information:
+* title:	Gemini
+* source:	https://sketchfab.com/3d-models/gemini-8fdac465e8804fedaa1249f81484abac
+* author:	Clément Dussol (https://sketchfab.com/faktori)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Gemini" (https://sketchfab.com/3d-models/gemini-8fdac465e8804fedaa1249f81484abac) by Clément Dussol (https://sketchfab.com/faktori) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
