@@ -40,10 +40,11 @@ const usePersonControls = () => {
 // isSelected = true (add a little aura below, make bigger, otherwise, greyscale)
 // x,y,z
 function ShipSelectModel(props: any) {
-  const object = useLoader(GLTFLoader, props.model);
-  const shipRef = useRef();
+  const object: any = useLoader(GLTFLoader, props.model);
+  const shipRef = useRef<any>();
 
   useFrame((state, delta) => {
+    if (typeof shipRef.current === "undefined") { return; }
     shipRef.current.rotation.y += delta;
   })
 
@@ -55,6 +56,14 @@ function ShipSelectModel(props: any) {
 function ShipLazySusan(props: any) {
   const lazySusanRef = useRef<any>();
   const [ targetRotation, setTargetRotation ] = React.useState(0);
+  
+  const [ selectedIndex, setSelectedIndex ] = React.useState(0); // default gemini
+  const ships = [
+    "Gemini",
+    "Virgo",
+    "Scorpio"
+  ]
+
 
   useFrame((state, delta) => {
     lazySusanRef.current.rotation.y = MathUtils.lerp(
@@ -65,20 +74,31 @@ function ShipLazySusan(props: any) {
   })
 
   function keepRotationInBounds(rotation: number) {
-    while (rotation < 0) {
-      rotation += 2 * Math.PI;
+    let newRotation = rotation;
+    while (newRotation < 0) {
+      newRotation += 2 * Math.PI;
     }
-    while (rotation >= 2 * Math.PI) {
-      rotation -= 2 * Math.PI;
+    while (newRotation >= 2 * Math.PI) {
+      newRotation -= 2 * Math.PI;
     }
-    return rotation;
+    return newRotation;
   }
   useEffect(() => {
     const handleKeyDown = (e: any) => {
+      console.log('key down: ' + e.code);
       if (e.code === 'ArrowLeft') {
-        setTargetRotation(keepRotationInBounds(targetRotation - Math.PI / 3))
+        setTargetRotation((targetRotation) => keepRotationInBounds(targetRotation - 2 * Math.PI / 3.0))
+        if (selectedIndex === 0) {
+          setSelectedIndex(ships.length - 1);
+          props.setSelectedShip(ships[ships.length - 1]);
+        } else {
+          setSelectedIndex(selectedIndex - 1)
+          props.setSelectedShip(ships[selectedIndex - 1]);
+        }
       } else if (e.code === 'ArrowRight') {
-        setTargetRotation(keepRotationInBounds(targetRotation + Math.PI/3))
+        setTargetRotation((targetRotation) =>keepRotationInBounds(targetRotation + 2 * Math.PI/3.0))
+        setSelectedIndex((selectedIndex + 1) % ships.length)
+        props.setSelectedShip(ships[(selectedIndex + 1) % ships.length]);
       }
     }
 
@@ -99,7 +119,7 @@ function ShipLazySusan(props: any) {
 
 function App() {
   
-  const [ selectedShip, setSelectedShip ] = React.useState<any>(undefined);
+  const [ selectedShip, setSelectedShip ] = React.useState<any>("Gemini");
 
   return (
     <>
@@ -110,7 +130,7 @@ function App() {
         fontFamily: 'Press Start 2P',
         fontSize: 40
       }}>
-        test
+        {selectedShip}
       </div>
       <div style={{
         width: "100vw",
@@ -119,7 +139,7 @@ function App() {
         <Canvas camera={{fov: 100}} style={{width: "100%", height: "100%"}} color={"black"}>
           <axesHelper />
           <OrbitControls />
-          <ShipLazySusan />
+          <ShipLazySusan setSelectedShip={setSelectedShip} />
           <Stage preset={"rembrandt"} adjustCamera={true}>
             
           </Stage>
