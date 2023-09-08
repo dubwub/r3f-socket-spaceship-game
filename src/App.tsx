@@ -53,6 +53,36 @@ function ShipSelectModel(props: any) {
   )
 }
 
+function Particle(props: any) {
+  let color = new Color(props.color);
+  const [vy, setVy] = React.useState(props.vy);
+  const particleRef = React.useRef<any>();
+
+  useFrame((state, delta) => {
+    particleRef.current.position.x += delta * props.vx;
+    particleRef.current.position.y += delta * vy;
+
+    if (particleRef.current.position.y < 10) {
+      props.setActive(false);
+    }
+    particleRef.current.position.z += delta * props.vx;
+    particleRef.current.rotation.x += delta * props.vx;
+
+    setVy(vy - delta * 5); // gravity
+  });
+
+  return (
+    <mesh position={[props.x, props.y, 0]} ref={particleRef}>
+      <boxGeometry args={[props.radius, props.radius, props.radius]} />
+      <meshStandardMaterial
+        emissiveIntensity={0.5}
+        emissive={color}
+        color={color}
+      />
+    </mesh>
+  );
+}
+
 function ShipLazySusan(props: any) {
   const lazySusanRef = useRef<any>();
   const [ targetRotation, setTargetRotation ] = React.useState(0);
@@ -65,6 +95,8 @@ function ShipLazySusan(props: any) {
   ]
 
 
+  const [ particleExperiment, setParticleExperiment ] = React.useState([]);
+
   useFrame((state, delta) => {
     lazySusanRef.current.rotation.y = MathUtils.lerp(
       lazySusanRef.current.rotation.y,
@@ -73,30 +105,20 @@ function ShipLazySusan(props: any) {
     )
   })
 
-  function keepRotationInBounds(rotation: number) {
-    let newRotation = rotation;
-    while (newRotation < 0) {
-      newRotation += 2 * Math.PI;
-    }
-    while (newRotation >= 2 * Math.PI) {
-      newRotation -= 2 * Math.PI;
-    }
-    return newRotation;
-  }
   useEffect(() => {
     const handleKeyDown = (e: any) => {
       console.log('key down: ' + e.code);
       if (e.code === 'ArrowLeft') {
-        setTargetRotation((targetRotation) => keepRotationInBounds(targetRotation - 2 * Math.PI / 3.0))
+        setTargetRotation((targetRotation) => targetRotation - 2 * Math.PI / 3.0)
         if (selectedIndex === 0) {
           setSelectedIndex(ships.length - 1);
           props.setSelectedShip(ships[ships.length - 1]);
         } else {
-          setSelectedIndex(selectedIndex - 1)
+          setSelectedIndex((selectedIndex) => selectedIndex - 1)
           props.setSelectedShip(ships[selectedIndex - 1]);
         }
       } else if (e.code === 'ArrowRight') {
-        setTargetRotation((targetRotation) =>keepRotationInBounds(targetRotation + 2 * Math.PI/3.0))
+        setTargetRotation((targetRotation) => targetRotation + 2 * Math.PI/3.0)
         setSelectedIndex((selectedIndex + 1) % ships.length)
         props.setSelectedShip(ships[(selectedIndex + 1) % ships.length]);
       }
