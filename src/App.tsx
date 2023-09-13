@@ -93,6 +93,7 @@ function ShipLazySusan(props: any) {
     "Virgo",
     "Scorpio"
   ]
+  console.log('si-global', selectedIndex);
 
 
   const [ particleExperiment, setParticleExperiment ] = React.useState([]);
@@ -110,17 +111,26 @@ function ShipLazySusan(props: any) {
       console.log('key down: ' + e.code);
       if (e.code === 'ArrowLeft') {
         setTargetRotation((targetRotation) => targetRotation - 2 * Math.PI / 3.0)
-        if (selectedIndex === 0) {
-          setSelectedIndex(ships.length - 1);
-          props.setSelectedShip(ships[ships.length - 1]);
-        } else {
-          setSelectedIndex((selectedIndex) => selectedIndex - 1)
-          props.setSelectedShip(ships[selectedIndex - 1]);
-        }
+        setSelectedIndex((selectedIndex) => {
+          let newIndex;
+          if (selectedIndex === 0) {
+            newIndex = ships.length - 1;
+          } else {
+            newIndex = selectedIndex - 1;
+          }
+          props.setSelectedShip(ships[newIndex]);
+          return newIndex;
+        })
       } else if (e.code === 'ArrowRight') {
         setTargetRotation((targetRotation) => targetRotation + 2 * Math.PI/3.0)
-        setSelectedIndex((selectedIndex + 1) % ships.length)
-        props.setSelectedShip(ships[(selectedIndex + 1) % ships.length]);
+        setSelectedIndex((selectedIndex) => {
+          let newIndex = (selectedIndex + 1) % ships.length;
+          props.setSelectedShip(ships[newIndex]);
+          return newIndex;
+        })
+      } else if (e.code === 'Space') {
+        console.log('here we are');
+        props.setIsLoading(false);
       }
     }
 
@@ -142,30 +152,44 @@ function ShipLazySusan(props: any) {
 function App() {
   
   const [ selectedShip, setSelectedShip ] = React.useState<any>("Gemini");
+  const [ isLoading, setIsLoading ] = React.useState(true);
+
+  let view;
+  if (isLoading) {
+    view = (
+      <>
+        <div style={{
+          position: "absolute",
+          left: window.innerWidth / 2,
+          top: window.innerHeight / 2,
+          fontFamily: 'Press Start 2P',
+          fontSize: 40
+        }}>
+          {selectedShip}
+        </div>
+        <Canvas camera={{fov: 100, position: [0,10,20]}} style={{width: "100%", height: "100%"}} color={"black"}>
+          <axesHelper />
+          <ShipLazySusan setSelectedShip={setSelectedShip} setIsLoading={setIsLoading} />
+        </Canvas>
+      </>
+    )
+  } else {
+    view = (
+      <>
+        <Canvas>
+          <axesHelper />
+        </Canvas>
+      </>
+    );
+  }
 
   return (
     <>
       <div style={{
-        position: "absolute",
-        left: window.innerWidth / 2,
-        top: window.innerHeight / 2,
-        fontFamily: 'Press Start 2P',
-        fontSize: 40
-      }}>
-        {selectedShip}
-      </div>
-      <div style={{
         width: "100vw",
         height: "100vh"
       }}>
-        <Canvas camera={{fov: 100}} style={{width: "100%", height: "100%"}} color={"black"}>
-          <axesHelper />
-          <OrbitControls />
-          <ShipLazySusan setSelectedShip={setSelectedShip} />
-          <Stage preset={"rembrandt"} adjustCamera={true}>
-            
-          </Stage>
-        </Canvas>
+        { view }
       </div>
     </>
   );
