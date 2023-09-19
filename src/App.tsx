@@ -6,36 +6,6 @@ import './index.css';
 
 import { Color, MathUtils } from 'three'
 
-const usePersonControls = () => {
-  const keys: any = {
-    ArrowLeft: 'left',
-    ArrowRight: 'right',
-  }
-
-  const moveFieldByKey = (key: string) => keys[key]
-
-  const [movement, setMovement] = useState({
-    left: false,
-    right: false,
-  })
-
-  useEffect(() => {
-    const handleKeyDown = (e: any) => {
-      setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: true }))
-    }
-    const handleKeyUp = (e: any) => {
-      setMovement((m) => ({ ...m, [moveFieldByKey(e.code)]: false }))
-    }
-    document.addEventListener('keydown', handleKeyDown)
-    document.addEventListener('keyup', handleKeyUp)
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown)
-      document.removeEventListener('keyup', handleKeyUp)
-    }
-  }, [])
-  return movement
-}
-
 // props:
 // isSelected = true (add a little aura below, make bigger, otherwise, greyscale)
 // x,y,z
@@ -51,36 +21,6 @@ function ShipSelectModel(props: any) {
   return (
     <primitive ref={shipRef} object={object.scene} scale={props.scale} position={props.position}/>
   )
-}
-
-function Particle(props: any) {
-  let color = new Color(props.color);
-  const [vy, setVy] = React.useState(props.vy);
-  const particleRef = React.useRef<any>();
-
-  useFrame((state, delta) => {
-    particleRef.current.position.x += delta * props.vx;
-    particleRef.current.position.y += delta * vy;
-
-    if (particleRef.current.position.y < 10) {
-      props.setActive(false);
-    }
-    particleRef.current.position.z += delta * props.vx;
-    particleRef.current.rotation.x += delta * props.vx;
-
-    setVy(vy - delta * 5); // gravity
-  });
-
-  return (
-    <mesh position={[props.x, props.y, 0]} ref={particleRef}>
-      <boxGeometry args={[props.radius, props.radius, props.radius]} />
-      <meshStandardMaterial
-        emissiveIntensity={0.5}
-        emissive={color}
-        color={color}
-      />
-    </mesh>
-  );
 }
 
 function ShipLazySusan(props: any) {
@@ -149,6 +89,108 @@ function ShipLazySusan(props: any) {
   )
 }
 
+function PlayerShip(props: any) {
+  const acceleration = 10;
+  const topSpeed = 100;
+
+  const [ pressedKeys, setPressedKeys ] = React.useState(new Set()); 
+  const [ velocities, setVelocities ] = React.useState({ vx: 0, vy: 0 })
+
+  const meshRef = useRef<any>();
+
+  let models = {
+    gemini: useLoader(GLTFLoader, "gemini/scene.gltf"),
+    virgo: useLoader(GLTFLoader, "virgo/scene.gltf"),
+    scorpio: useLoader(GLTFLoader, "scorpio/scene.gltf")
+  }
+  
+  let mesh = <></>;
+  if (props.model === "Gemini") {
+    mesh = <primitive ref={meshRef} object={models.gemini.scene} scale={0.06} position={[0, 0, 0]}/>
+  } else if (props.model === "Virgo") {
+    mesh = <primitive ref={meshRef} object={models.virgo.scene} scale={0.03} position={[0, 0, 0]}/>
+  } else { // ... if (props.model === "Scorpio")
+    mesh = <primitive ref={meshRef} object={models.scorpio.scene} scale={0.2} position={[0, 0, 0]}/>
+  }
+
+  useFrame((state, delta) => {
+    setVelocities(({vx, vy}) => {
+      // modify with keys
+      let keys = [ "KeyW", "KeyA", "KeyS", "KeyD" ];
+      let modifiers = [ [0, 1], [-1, 0], [0, -1], [1, 0] ]
+      let new_vx = vx;
+      let new_vy = vy;
+
+      for (let i = 0; i < keys.length; i++) {
+        if (pressedKeys.has(keys[i])) {
+          new_vx = new_vx + modifiers[i][0] * acceleration * delta;
+          new_vy = new_vy + modifiers[i][1] * acceleration * delta; 
+        }
+      }
+      
+      // friction
+      if (!pressedKeys.has("KeyA") && !pressedKeys.has("KeyD")) {
+        new_vx *= .9;
+      }
+      if (!pressedKeys.has("KeyW") && !pressedKeys.has("KeyS")) {
+        new_vy *= .9;
+      }
+      
+      // check velocity caps
+      if (new_vx < -1 * topSpeed) { new_vx = -1 * topSpeed }
+      if (new_vx > topSpeed) { new_vx = topSpeed }
+      if (new_vy < -1 * topSpeed) { new_vy = -1 * topSpeed }
+      if (new_vy > topSpeed) { new_vy = topSpeed }
+
+      // modify position
+      meshRef.current.position.x += new_vx * delta;
+      meshRef.current.position.y += new_vy * delta;
+
+      // check position caps
+      let boxBound = 50;
+      if (meshRef.current.position.x < -1 * boxBound) { new_vx = -1 * boxBound }
+      if (meshRef.current.position.x > boxBound) { new_vx = boxBound }
+      if (meshRef.current.position.y < -1 * boxBound) { new_vy = -1 * boxBound }
+      if (meshRef.current.position.y > boxBound) { new_vy = boxBound }
+
+      return {
+        vx: new_vx,
+        vy: new_vy,
+      }
+    })
+  })  
+
+  useEffect(() => {
+    const handleKeyDown = (e: any) => {
+      console.log('key down: ' + e.code);
+      if (["KeyW", "KeyA", "KeyS", "KeyD"].indexOf(e.code) !== -1) {
+        let newSet = new Set(pressedKeys);
+        newSet.add(e.code);
+        setPressedKeys((_) => newSet);
+      }
+    }
+    const handleKeyUp = (e: any) => {
+      console.log('key up: ' + e.code);
+      if (["KeyW", "KeyA", "KeyS", "KeyD"].indexOf(e.code) !== -1) {
+        let newSet = new Set(pressedKeys);
+        newSet.delete(e.code);
+        setPressedKeys((_) => newSet);
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    document.addEventListener('keyup', handleKeyUp)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown)
+      document.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  return (
+    <>{ mesh }</>
+  )
+}
+
 function App() {
   
   const [ selectedShip, setSelectedShip ] = React.useState<any>("Gemini");
@@ -178,6 +220,7 @@ function App() {
       <>
         <Canvas>
           <axesHelper />
+          <PlayerShip model={selectedShip} />
         </Canvas>
       </>
     );
